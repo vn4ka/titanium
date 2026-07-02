@@ -1,0 +1,15 @@
+# Zig build artifacts
+zig-out/
+.zig-cache/
+
+# GRUB ISO build artifacts
+*.iso
+iso/
+
+# macOS
+.DS_Store
+
+# Editor
+*.swp
+*.swo
+*~
