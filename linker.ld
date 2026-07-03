@@ -1,11 +1,8 @@
-/* Minimal linker script for a Multiboot i386 kernel */
 ENTRY(_start)
 
 SECTIONS {
-    /* Multiboot loads the kernel at 1MB */
     . = 1M;
 
-    /* Multiboot header must be in the first 8KB of the binary */
     .multiboot ALIGN(4) : {
         KEEP(*(.multiboot))
     }
@@ -23,7 +20,16 @@ SECTIONS {
     }
 
     .bss ALIGN(4K) : {
+        . = ALIGN(4K);
         *(COMMON)
         *(.bss .bss.*)
+        . = ALIGN(4K);
+    }
+
+    /DISCARD/ : {
+        *(.note.gnu.build-id)
+        *(.comment)
+        *(.eh_frame)
+        *(.eh_frame_hdr)
     }
 }

@@ -1,8 +1,6 @@
-pub const std_options = struct {
-    pub const page_size_max = 4096;
-};
-
 const std = @import("std");
+pub const std_options: std.Options = .{ .page_size_max = 4096 };
+
 const vga = @import("vga.zig");
 const input = @import("input.zig");
 const shell = @import("shell.zig");
