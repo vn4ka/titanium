@@ -2,7 +2,7 @@ const std = @import("std");
 const vga = @import("vga.zig");
 const ports = @import("ports.zig");
 
-const scancode_map = blk: {
+const scanmap = blk: {
     var map: [256]u8 = undefined;
     for (&map) |*v| v.* = 0;
     map[0x02] = '1';
@@ -46,30 +46,66 @@ const scancode_map = blk: {
     map[0x1C] = '\r';
     break :blk map;
 };
-var input_buffer: [256]u8 = undefined;
-pub fn input() []const u8 {
-    var len: usize = 0;
 
+var buffer: [256]u8 = undefined;
+var len: usize = 0;
+
+fn waitForKey() void {
+    while (ports.inb(0x64) & 0x01 == 0) {
+        asm volatile ("pause" ::: .{ .memory = true });
+    }
+}
+
+fn scanKey() u8 {
+    return ports.inb(0x60);
+}
+
+fn isBreakCode(scancode: u8) bool {
+    return scancode >= 0x80;
+}
+
+fn scancodeToChar(scancode: u8) u8 {
+    return scanmap[scancode];
+}
+
+fn isPrintable(ch: u8) bool {
+    return ch >= 0x20 and ch < 0x7F;
+}
+
+fn appendBuffer(ch: u8) void {
+    if (len < buffer.len - 1) {
+        buffer[len] = ch;
+        len += 1;
+        vga.writeChar(ch);
+    }
+}
+
+fn backspacePressed() void {
+    if (len > 0) {
+        len -= 1;
+        vga.removeLast();
+    }
+}
+
+fn enterPressed() []const u8 {
+    buffer[len] = 0;
+    vga.println("");
+    return buffer[0..len];
+}
+
+pub fn input() []const u8 {
+    len = 0;
     while (true) {
-        while (ports.inb(0x64) & 0x01 == 0) {}
-        const scancode = ports.inb(0x60);
-        if (scancode >= 0x80) continue;
-        const ch = scancode_map[scancode];
+        waitForKey();
+        const scancode = scanKey();
+        if (isBreakCode(scancode)) continue;
+        const ch = scancodeToChar(scancode);
         if (ch == 0) {} else if (ch == '\r') {
-            input_buffer[len] = 0;
-            vga.println("");
-            return input_buffer[0..len];
+            return enterPressed();
         } else if (ch == '\x08') {
-            if (len > 0) {
-                len -= 1;
-                vga.removeLast();
-            }
-        } else if (ch >= 0x20 and ch < 0x7F) {
-            if (len < input_buffer.len - 1) {
-                input_buffer[len] = ch;
-                len += 1;
-                vga.writeChar(ch);
-            }
+            backspacePressed();
+        } else if (isPrintable(ch)) {
+            appendBuffer(ch);
         }
     }
 }

@@ -8,8 +8,11 @@ iso/
 
 # macOS
 .DS_Store
-
 # Editor
 *.swp
 *.swo
 *~
+
+#disk image
+*.img
+*.iso
